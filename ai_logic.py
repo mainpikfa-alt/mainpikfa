@@ -72,3 +72,79 @@ class ComputerAI:
                 target = random.choice(self.possible_targets)
                 self.possible_targets.remove(target)
                 return target
+       # Случайный выстрел в шахматном порядке для эффективности
+        valid_moves = []
+        for y in range(GRID_SIZE):
+            for x in range(GRID_SIZE):
+                if board.shots[y][x] == 0:
+                    # Предпочитаем клетки в шахматном порядке
+                    if (x + y) % 2 == 0:
+                        valid_moves.append((x, y))
+        
+        # Если нет клеток в шахматном порядке, берем любые
+        if not valid_moves:
+            for y in range(GRID_SIZE):
+                for x in range(GRID_SIZE):
+                    if board.shots[y][x] == 0:
+                        valid_moves.append((x, y))
+        
+        if valid_moves:
+            return random.choice(valid_moves)
+        
+        return None
+    
+    def add_adjacent_targets(self, board):
+        """Добавляет соседние клетки для всех попаданий"""
+        for x, y in self.hit_cells:
+            # Если направление уже определено, добавляем только клетки в этом направлении
+            if self.ship_direction == 'horizontal':
+                for dx in [-1, 1]:
+                    nx = x + dx
+                    if 0 <= nx < GRID_SIZE and board.shots[y][nx] == 0:
+                        if (nx, y) not in self.possible_targets:
+                            self.possible_targets.append((nx, y))
+            elif self.ship_direction == 'vertical':
+                for dy in [-1, 1]:
+                    ny = y + dy
+                    if 0 <= ny < GRID_SIZE and board.shots[ny][x] == 0:
+                        if (x, ny) not in self.possible_targets:
+                            self.possible_targets.append((x, ny))
+            else:
+                # Направление неизвестно, проверяем все 4 стороны
+                directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+                for dx, dy in directions:
+                    nx, ny = x + dx, y + dy
+                    if 0 <= nx < GRID_SIZE and 0 <= ny < GRID_SIZE and board.shots[ny][nx] == 0:
+                        if (nx, ny) not in self.possible_targets:
+                            self.possible_targets.append((nx, ny))
+    
+    def register_hit(self, x, y):
+        """Регистрация попадания"""
+        self.last_hit = (x, y)
+        self.hit_cells.append((x, y))
+        self.hunt_mode = True
+        
+        # Если уже есть попадания, пытаемся определить направление
+        if len(self.hit_cells) >= 2 and self.ship_direction is None:
+            x_coords = [hit[0] for hit in self.hit_cells]
+            y_coords = [hit[1] for hit in self.hit_cells]
+            
+            if len(set(y_coords)) == 1:
+                self.ship_direction = 'horizontal'
+                self.possible_targets = []
+            elif len(set(x_coords)) == 1:
+                self.ship_direction = 'vertical'
+                self.possible_targets = []
+    
+    def register_miss(self, x, y):
+        """Регистрация промаха"""
+        if (x, y) in self.possible_targets:
+            self.possible_targets.remove((x, y))
+    
+    def register_sunk(self):
+        """Регистрация потопления корабля"""
+        self.last_hit = None
+        self.hit_cells = []
+        self.possible_targets = []
+        self.hunt_mode = False
+        self.ship_direction = None
