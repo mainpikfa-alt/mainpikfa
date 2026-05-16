@@ -56,3 +56,38 @@ class SoundManager:
                 self.sounds[sound_name].play()
             except Exception as e:
                 print(f"Ошибка воспроизведения звука {sound_name}: {e}")
+    def start_music(self):
+        """Запуск фоновой музыки"""
+        if self.music_enabled:
+            try:
+                pygame.mixer.music.play(-1)
+                self.music_playing = True
+            except Exception as e:
+                print(f"Ошибка запуска музыки: {e}")
+    
+    def stop_music(self):
+        """Остановка фоновой музыки"""
+        try:
+            pygame.mixer.music.stop()
+            self.music_playing = False
+        except Exception as e:
+            print(f"Ошибка остановки музыки: {e}")
+    
+    def toggle_music(self):
+        """Переключение фоновой музыки"""
+        self.music_enabled = not self.music_enabled
+        if self.music_enabled:
+            self.start_music()
+        else:
+            self.stop_music()
+    
+    def set_volume(self, volume):
+        """Установка громкости (0.0 - 1.0)"""
+        self.volume = max(0.0, min(1.0, volume))
+        
+        # Обновляем громкость для всех звуков
+        for sound in self.sounds.values():
+            sound.set_volume(self.volume)
+        
+        # Обновляем громкость музыки
+        pygame.mixer.music.set_volume(self.volume * 0.3)
